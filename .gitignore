@@ -1,0 +1,44 @@
+# ------------------------------------------------------
+# .NET / Visual Studio
+# ------------------------------------------------------
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio specific files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet Packages
+*.nupkg
+packages/
+.nuget/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Dotnet core local settings
+local.settings.json
+
+# ------------------------------------------------------
+# JetBrains IDEs (e.g., Rider) & IntelliJ (.idea)
+# ------------------------------------------------------
+.idea/
+*.sln.iml
+
+# ------------------------------------------------------
+# OS Generated Files
+# ------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------------------------------
+# Logs, Cache, and Temporary Files
+# ------------------------------------------------------
+*.log
+*.cache
+*.tmp
