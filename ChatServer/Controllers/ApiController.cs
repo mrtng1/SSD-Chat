@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 namespace ChatServer.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class ApiController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -45,6 +45,15 @@ namespace ChatServer.Controllers
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             await _context.SaveChangesAsync();
+
+            Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(1),
+                Path = "/api/refresh"
+            });
 
             return Ok(new AuthResponse(
                 Token: token,
@@ -100,18 +109,16 @@ namespace ChatServer.Controllers
         {
             try
             {
-                // Validate request
                 if (await _context.Users.AnyAsync(u => u.Username == request.Username))
                     return Conflict("Username already exists");
 
                 if (!IsPasswordStrong(request.Password))
                     return BadRequest("Password does not meet complexity requirements");
 
-                // Convert Base64 string to byte array
                 byte[] publicKeyBytes;
                 var publicKey = request.PublicKey.Trim();
 
-                // Check for URL-safe Base64 and convert to standard
+                // Convert URL-safe Base64 to standard
                 publicKey = publicKey.Replace('-', '+').Replace('_', '/');
 
                 // Handle padding
@@ -123,23 +130,25 @@ namespace ChatServer.Controllers
 
                 try
                 {
-                    publicKeyBytes = Convert.FromBase64String(publicKey);
+                    using var ecdsa = ECDsa.Create();
+                    ecdsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicKey), out _);
+                    
+                    var ecParams = ecdsa.ExportParameters(false);
+                    publicKeyBytes = new byte[65];
+                    publicKeyBytes[0] = 0x04;
+                    Buffer.BlockCopy(ecParams.Q.X, 0, publicKeyBytes, 1, 32);
+                    Buffer.BlockCopy(ecParams.Q.Y, 0, publicKeyBytes, 33, 32);
                 }
-                catch (FormatException)
+                catch (Exception)
                 {
-                    return BadRequest("Invalid Base64 public key format");
+                    return BadRequest("Invalid public key format");
                 }
-
-                // Validate public key length (32 bytes for X25519)
-                if (publicKeyBytes.Length != 32)
-                    return BadRequest("Invalid public key length. Expected 32 bytes");
 
                 // Create password hash
                 using var hmac = new HMACSHA512();
                 var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(request.Password));
                 var passwordSalt = hmac.Key;
 
-                // Create user
                 var user = new User
                 {
                     Username = request.Username,
@@ -159,17 +168,53 @@ namespace ChatServer.Controllers
                 user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
                 await _context.SaveChangesAsync();
 
+                Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddDays(1),
+                    Path = "/api/refresh"
+                });
+
                 return Ok(new AuthResponse(
                     Token: token,
                     RefreshToken: refreshToken,
-                    PublicKey: Convert.ToBase64String(user.PublicKey)
+                    PublicKey: Convert.ToBase64String(publicKeyBytes)
                 ));
             }
             catch (Exception ex)
             {
-                // Log the exception
-                return StatusCode(500, "An error occurred during registration");
+                // Log exception
+                return StatusCode(500, "Registration error");
             }
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
+            if (user == null || user.RefreshTokenExpiry <= DateTime.UtcNow)
+                return Unauthorized("Invalid refresh token");
+
+            var newJwt = GenerateJwtToken(user);
+            var newRefreshToken = GenerateRefreshToken();
+
+            // Update cookie
+            Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(7),
+                Path = "/api/refresh"
+            });
+
+            return Ok(new { token = newJwt });
         }
 
         private bool IsPasswordStrong(string password)

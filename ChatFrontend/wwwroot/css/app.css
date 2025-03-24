@@ -112,3 +112,38 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.auth-container {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.auth-form {
+    flex: 1;
+    padding: 1.5rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.btn {
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.error-message {
+    color: #dc3545;
+    margin-top: 1rem;
+}
+
+.success-message {
+    color: #28a745;
+    margin-top: 1rem;
+}

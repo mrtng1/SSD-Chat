@@ -1,0 +1,125 @@
+﻿@page "/login"
+@using ChatFrontend.Services
+@using System.Text.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject AuthService Auth
+@inject IJSRuntime JSRuntime
+@using ChatFrontend.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+
+<div class="auth-container">
+    <!-- Login -->
+    <div class="auth-form">
+        <h3>Login</h3>
+        <EditForm Model="@loginRequest" OnValidSubmit="@HandleLogin">
+            <div class="form-group">
+                <label>Username</label>
+                <InputText @bind-Value="loginRequest.Username" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <InputText type="password" @bind-Value="loginRequest.Password" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+            @if (!string.IsNullOrEmpty(loginError))
+            {
+                <div class="error-message">@loginError</div>
+            }
+        </EditForm>
+    </div>
+
+    <!-- Register -->
+    <div class="auth-form">
+        <h3>Register</h3>
+        <EditForm Model="@registerRequest" OnValidSubmit="@HandleRegister">
+            <div class="form-group">
+                <label>Username</label>
+                <InputText @bind-Value="registerRequest.Username" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <InputText type="password" @bind-Value="registerRequest.Password" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-success">Create Account</button>
+            @if (!string.IsNullOrEmpty(registerError))
+            {
+                <div class="error-message">@registerError</div>
+            }
+            @if (!string.IsNullOrEmpty(registerSuccess))
+            {
+                <div class="success-message">@registerSuccess</div>
+            }
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private RegisterRequest registerRequest = new();
+    private string loginError = "";
+    private string registerError = "";
+    private string registerSuccess = "";
+
+    private async Task HandleLogin()
+    {
+        loginError = "";
+        try
+        {
+            var response = await Http.PostAsJsonAsync("http://localhost:5065/api/login", loginRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                await Auth.Login(result.Token);
+                Nav.NavigateTo("/");
+            }
+            else
+            {
+                loginError = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch
+        {
+            loginError = "Failed to login. Please try again.";
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        registerError = "";
+        registerSuccess = "";
+        
+        try
+        {
+            // Generate key pair
+            var keys = await JSRuntime.InvokeAsync<KeyPair>("generateKeyPair");
+            
+            var request = new RegisterRequest
+            {
+                Username = registerRequest.Username,
+                Password = registerRequest.Password,
+                PublicKey = keys.PublicKey
+            };
+
+            var response = await Http.PostAsJsonAsync("http://localhost:5065/api/register", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Store private key securely
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "privateKey", JsonSerializer.Serialize(keys.PrivateKey));
+                registerSuccess = "Account created successfully!";
+                registerRequest = new RegisterRequest();
+            }
+            else
+            {
+                registerError = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            registerError = $"Registration failed: {ex.Message}";
+        }
+    }
+}
