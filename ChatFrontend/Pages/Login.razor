@@ -22,7 +22,12 @@
                 <label>Password</label>
                 <InputText type="password" @bind-Value="loginRequest.Password" class="form-control" />
             </div>
-            <button type="submit" class="btn btn-primary">Sign In</button>
+            <button type="submit" class="btn btn-primary" disabled="@isLoggingIn">
+                @if (isLoggingIn) {
+                    <span class="spinner-border spinner-border-sm"></span>
+                }
+                Sign In
+            </button>
             @if (!string.IsNullOrEmpty(loginError))
             {
                 <div class="error-message">@loginError</div>
@@ -61,6 +66,9 @@
     private string loginError = "";
     private string registerError = "";
     private string registerSuccess = "";
+    
+    private bool isLoggingIn = false;
+    private bool isRegistering = false;
 
     private async Task HandleLogin()
     {
@@ -73,7 +81,7 @@
             {
                 var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
                 await Auth.Login(result.Token);
-                Nav.NavigateTo("/");
+                Nav.NavigateTo("");
             }
             else
             {
@@ -107,7 +115,6 @@
             
             if (response.IsSuccessStatusCode)
             {
-                // Store private key securely
                 await JSRuntime.InvokeVoidAsync("localStorage.setItem", "privateKey", JsonSerializer.Serialize(keys.PrivateKey));
                 registerSuccess = "Account created successfully!";
                 registerRequest = new RegisterRequest();

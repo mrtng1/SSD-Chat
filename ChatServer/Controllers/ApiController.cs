@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ChatServer.Controllers
 {
@@ -43,7 +44,7 @@ namespace ChatServer.Controllers
             var refreshToken = GenerateRefreshToken();
 
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(1);
             await _context.SaveChangesAsync();
 
             Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
@@ -215,6 +216,37 @@ namespace ChatServer.Controllers
             });
 
             return Ok(new { token = newJwt });
+        }
+        
+        [HttpGet("users")]
+        //[Authorize]
+        public async Task<IActionResult> GetUsers()
+        {
+            var authHeader = HttpContext.Request.Headers["Authorization"].FirstOrDefault();
+
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized("Missing or invalid Authorization header");
+            }
+
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            string  userIdClaim = jwtToken.Claims.First().Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid currentUserId))
+            {
+                return Unauthorized("Invalid token");
+            }
+
+            var users = await _context.Users
+                .Where(u => u.PrimaryKey != currentUserId)
+                .Select(u => new { u.PrimaryKey, u.Username })
+                .ToListAsync();
+
+            return Ok(users);
         }
 
         private bool IsPasswordStrong(string password)

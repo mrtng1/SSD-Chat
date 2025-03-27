@@ -3,6 +3,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Json;
+using ChatFrontend.DTOs;
 using Microsoft.AspNetCore.Components;
 
 namespace ChatFrontend.Services
@@ -20,28 +22,68 @@ namespace ChatFrontend.Services
             _nav = nav;
         }
 
+        // public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+        // {
+        //     var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
+        //     if (string.IsNullOrEmpty(token))
+        //     {
+        //         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+        //     }
+        //
+        //     var handler = new JwtSecurityTokenHandler();
+        //     var jwtToken = handler.ReadJwtToken(token);
+        //     var claims = jwtToken.Claims.ToList();
+        //     claims.Add(new Claim("JWT", token));
+        //
+        //     var identity = new ClaimsIdentity(claims, "jwt");
+        //     var user = new ClaimsPrincipal(identity);
+        //
+        //     return new AuthenticationState(user);
+        // }
+        
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var token = await GetTokenAsync();
-        
-            if (string.IsNullOrEmpty(token) || !IsTokenValid(token))
+            var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
             {
-                //await Logout();
-                return new AuthenticationState(new ClaimsPrincipal());
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
 
-            return CreateStateFromToken(token);
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            var claims = jwtToken.Claims.ToList();
+
+            // Extract existing claims from the JWT
+            var userId = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+            var username = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.UniqueName)?.Value;
+
+            // Add or replace custom claims
+            claims.Add(new Claim("JWT", token));
+            claims.Add(new Claim("UserId", userId ?? string.Empty));
+            claims.Add(new Claim("Username", username ?? string.Empty));
+
+            var identity = new ClaimsIdentity(claims, "jwt");
+            var user = new ClaimsPrincipal(identity);
+
+            return new AuthenticationState(user);
         }
         
-        private bool IsTokenValid(string token)
+        private async Task<bool> IsTokenValid(string token)
         {
             try
             {
                 var handler = new JwtSecurityTokenHandler();
+        
+                // Basic client-side validation
+                if (!handler.CanReadToken(token)) return false;
+        
                 var jwt = handler.ReadJwtToken(token);
-            
-                if (jwt.ValidTo < DateTime.UtcNow)
+                var expiry = jwt.ValidTo.ToUniversalTime();
+        
+                // Check expiration with 1 minute buffer
+                if (expiry < DateTime.UtcNow.AddMinutes(-1))
                 {
+                    await Logout();
                     return false;
                 }
 
@@ -49,6 +91,7 @@ namespace ChatFrontend.Services
             }
             catch
             {
+                await Logout();
                 return false;
             }
         }
@@ -67,8 +110,20 @@ namespace ChatFrontend.Services
 
         public async Task Login(string token)
         {
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            
+            var jwtToken = handler.ReadJwtToken(token);
+            
+            var claims = jwtToken.Claims.ToList();
+            claims.Add(new Claim("JWT", token));
+
+            var identity = new ClaimsIdentity(claims, "jwt");
+            var user = new ClaimsPrincipal(identity);
+
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+    
             await _js.InvokeVoidAsync("localStorage.setItem", "authToken", token);
-            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            CreateStateFromToken(token);
         }
 
         public async Task Logout()
@@ -91,6 +146,26 @@ namespace ChatFrontend.Services
             {
                 // Return anonymous state when token is invalid
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
+        }
+        
+        public async Task RefreshToken()
+        {
+            var refreshToken = await _js.InvokeAsync<string>("localStorage.getItem", "refreshToken");
+    
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                var response = await _http.PostAsync("/api/refresh", null);
+        
+                if (response.IsSuccessStatusCode)
+                {
+                    var newToken = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                    await Login(newToken.Token);
+                }
+                else
+                {
+                    await Logout();
+                }
             }
         }
 

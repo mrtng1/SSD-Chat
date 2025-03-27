@@ -1,8 +1,184 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using ChatFrontend.Services
+@using ChatServer.DTOs
+@using System.Security.Claims
+@inject AuthService authService
+@inject AuthHeaderHandler authHeaderHandler
+@using ChatFrontend.DTOs
+@using System.Net.Http.Headers
+@using Org.BouncyCastle.Ocsp
 @attribute [Authorize]
 
-<PageTitle>Chat</PageTitle>
+<PageTitle>Secure Chat</PageTitle>
 
-<h1>Chat</h1>
+<h1>Secure Chat @currentUsername - @currentUserId</h1>
 
+@if (error != null)
+{
+    <div class="error-alert">
+        <strong>Error:</strong> @error.Message
+        @if (error.InnerException != null)
+        {
+            <div class="error-details">
+                Details: @error.InnerException.Message
+            </div>
+        }
+        <button @onclick="() => error = null" class="dismiss-btn">Close</button>
+    </div>
+}
+
+<div class="chat-container">
+    <div class="message-list">
+        @foreach (var message in messages)
+        {
+            var isSentByCurrentUser = message.Sender == currentUserId;
+            <div class="message @(isSentByCurrentUser ? "sent" : "received")">
+                <div class="message-header">
+                    <span class="sender">@message.SenderName</span>
+                </div>
+                <div class="message-content">@message.Content</div>
+            </div>
+        }
+    </div>
+
+    <div class="message-input">
+        <input @bind="newMessage" placeholder="Type encrypted message..." />
+        <button @onclick="SendMessage">Send</button>
+    </div>
+</div>
+
+
+<div>
+    <label for="recipient">Select Recipient:</label>
+    <select @bind="selectedUserId">
+        @if (users.Any())
+        {
+            @foreach (var user in users)
+            {
+                <option value="@user.PrimaryKey">@user.Username</option>
+            }
+        }
+        else
+        {
+            <option>No users available</option>
+        }
+    </select>
+</div>
+
+@code {
+    private List<Message> messages = new();
+    private string newMessage = "";
+    private string currentUserId = "null";
+    private string currentUsername = "null";
+    private Exception? error;
+
+    private List<UserDto> users = new();
+    private string selectedUserId = "";
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    [Inject] private ChatService ChatService { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            currentUserId = authState.User.Claims.FirstOrDefault(c => c.Type.Equals("UserId", StringComparison.OrdinalIgnoreCase))?.Value.ToString();
+            currentUsername = authState.User.FindFirst("unique_name")?.Value ?? "Unknown";
+             
+            await LoadUsers();
+            await ChatService.InitializeAsync(); 
+            ChatService.OnMessageReceived(HandleMessage);
+            
+        }
+        catch (Exception ex)
+        {
+            error = new Exception("Initialization failed", ex);
+            StateHasChanged();
+        }
+    }
+    
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(newMessage) || string.IsNullOrEmpty(selectedUserId))
+            return;
+
+        try
+        {
+            await ChatService.SendMessage(new Message()
+            {
+                Content = newMessage,
+                Sender = currentUserId ?? "unknown",
+                SenderName = currentUsername ?? "unknown",
+                Recipient = selectedUserId
+            });
+
+            messages.Add(new Message
+            {
+                Content = newMessage,
+                Sender = currentUserId ?? "unknown",
+                SenderName = currentUsername ?? "unknown",
+                Recipient = selectedUserId
+            });
+
+            newMessage = "";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            error = new Exception("Failed to send message", ex);
+            StateHasChanged();
+        }
+    }
+
+
+    private async void HandleMessage(Message incomingMessage)
+    {
+        try
+        {
+            var processedMessage = new Message
+            {
+                Content = incomingMessage.Content,
+                Sender = incomingMessage.Sender,
+                
+                Recipient = incomingMessage.Recipient
+            };
+            
+            messages.Add(processedMessage);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            error = new Exception("Failed to decrypt message", ex);
+            StateHasChanged();
+        }
+    }
+    
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            string token = await authService.GetTokenAsync();
+            var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5065/api/users");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                users = await response.Content.ReadFromJsonAsync<List<UserDto>>() ?? new List<UserDto>();
+                if (users.Any())
+                {
+                    selectedUserId = users[0].PrimaryKey;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            error = new Exception("Failed to load users", ex);
+        }
+    }
+}

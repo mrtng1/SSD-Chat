@@ -1,71 +1,76 @@
-﻿using ChatServer.Infrastructure;
+﻿using ChatServer.DTOs;
+using ChatServer.Infrastructure;
 using ChatServer.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Message = ChatServer.DTOs.Message;
 
 namespace ChatServer.Service
 {
+    [Authorize]
     public class ChatHub : Hub
     {
-        private readonly AppDbContext _context;
-
-        public ChatHub(AppDbContext context)
+        
+        public async Task SendMessage(Message message)
         {
-            _context = context;
+            Console.WriteLine($"Content received: {message.Content}");
+            // await Clients.User(message.Recipient).SendAsync("ReceiveMessage", message);
+            await Clients.All.SendAsync("ReceiveMessage", message);
         }
-
-        // Register user with their public key
-        public async Task RegisterUser(string username, byte[] publicKey)
+        
+        public async Task SendPrivateMessage(Message message)
         {
-            var user = _context.Users
-                .FirstOrDefault(u => u.Username == username);
+            // This will send the message to all connections that belong to the given user identifier.
+            Console.WriteLine($"Sending private message to user: {message.Recipient}");
+            await Clients.User(message.Recipient).SendAsync("ReceiveMessage", message);
+        }
+        
+        // public override async Task OnConnectedAsync()
+        // {
+        //     var userId = Context.UserIdentifier;
+        //     await Groups.AddToGroupAsync(Context.ConnectionId, userId);
+        //     await base.OnConnectedAsync();
+        // }
+        
+        public override async Task OnConnectedAsync()
+        {
+            var connectionId = Context.ConnectionId;
+            var userId = Context.UserIdentifier;
+            Console.WriteLine($"New connection: ConnectionId = {connectionId}, UserIdentifier = {userId}");
 
-            if (user == null)
+            // debugging
+            if (Context.User?.Identity?.IsAuthenticated == true)
             {
-                user = new User { Username = username, PublicKey = publicKey };
-                _context.Users.Add(user);
+                Console.WriteLine("User is authenticated. Claims:");
+                foreach (var claim in Context.User.Claims)
+                {
+                    Console.WriteLine($" - {claim.Type}: {claim.Value}");
+                }
             }
             else
             {
-                user.PublicKey = publicKey;
+                Console.WriteLine("User is not authenticated.");
             }
 
-            user.ConnectionId = Context.ConnectionId;
-            _context.SaveChanges();
+            if (!string.IsNullOrEmpty(userId))
+            {
+                await Groups.AddToGroupAsync(connectionId, userId);
+                Console.WriteLine($"Added connection {connectionId} to group {userId}.");
+            }
+            else
+            {
+                Console.WriteLine("No UserIdentifier found, so no group assignment was done.");
+            }
+
+            await base.OnConnectedAsync();
         }
 
-        // Get public key for a user
-        public async Task<byte[]> GetPublicKey(string username)
-        {
-            var user =  _context.Users
-                .FirstOrDefault(u => u.Username == username);
 
-            return user?.PublicKey ?? Array.Empty<byte>();
-        }
-
-        // Relay encrypted message to recipient
-        public async Task SendEncryptedMessage(string recipientUsername, byte[] encryptedData)
-        {
-            var recipient =  _context.Users
-                .FirstOrDefault(u => u.Username == recipientUsername);
-
-            if (recipient?.ConnectionId == null) return;
-
-            Clients.Client(recipient.ConnectionId).SendAsync("ReceiveEncryptedMessage", encryptedData);
-        }
-
-        // Cleanup on disconnect
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            var user = _context.Users
-                .FirstOrDefault(u => u.ConnectionId == Context.ConnectionId);
-
-            if (user != null)
-            {
-                user.ConnectionId = null;
-                await _context.SaveChangesAsync();
-            }
-
+            // Remove the connection from your tracking collection
             await base.OnDisconnectedAsync(exception);
         }
+
     }
 }

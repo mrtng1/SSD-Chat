@@ -10,7 +10,20 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, AuthService>();
+
+//adds bearer to requests
+builder.Services.AddScoped<AuthHeaderHandler>();
+builder.Services.AddScoped(sp => {
+    var authHandler = sp.GetRequiredService<AuthHeaderHandler>();
+    authHandler.InnerHandler = new HttpClientHandler();
+    return new HttpClient(authHandler) 
+    { 
+        BaseAddress = new Uri("http://localhost:5065")
+    };
+});
+
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped(sp => new HttpClient 
     
 { 
