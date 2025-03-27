@@ -68,7 +68,7 @@ namespace ChatFrontend.Services
             return new AuthenticationState(user);
         }
         
-        private async Task<bool> IsTokenValid(string token)
+        public async Task<bool> IsTokenValid(string token)
         {
             try
             {
@@ -149,25 +149,6 @@ namespace ChatFrontend.Services
             }
         }
         
-        public async Task RefreshToken()
-        {
-            var refreshToken = await _js.InvokeAsync<string>("localStorage.getItem", "refreshToken");
-    
-            if (!string.IsNullOrEmpty(refreshToken))
-            {
-                var response = await _http.PostAsync("/api/refresh", null);
-        
-                if (response.IsSuccessStatusCode)
-                {
-                    var newToken = await response.Content.ReadFromJsonAsync<AuthResponse>();
-                    await Login(newToken.Token);
-                }
-                else
-                {
-                    await Logout();
-                }
-            }
-        }
 
         
     }

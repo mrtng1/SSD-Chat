@@ -219,7 +219,7 @@ namespace ChatServer.Controllers
         }
         
         [HttpGet("users")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> GetUsers()
         {
             var authHeader = HttpContext.Request.Headers["Authorization"].FirstOrDefault();

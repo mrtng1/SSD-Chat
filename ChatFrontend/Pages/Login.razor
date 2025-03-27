@@ -52,10 +52,6 @@
             {
                 <div class="error-message">@registerError</div>
             }
-            @if (!string.IsNullOrEmpty(registerSuccess))
-            {
-                <div class="success-message">@registerSuccess</div>
-            }
         </EditForm>
     </div>
 </div>
@@ -65,7 +61,6 @@
     private RegisterRequest registerRequest = new();
     private string loginError = "";
     private string registerError = "";
-    private string registerSuccess = "";
     
     private bool isLoggingIn = false;
     private bool isRegistering = false;
@@ -81,7 +76,7 @@
             {
                 var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
                 await Auth.Login(result.Token);
-                Nav.NavigateTo("");
+                Nav.NavigateTo("/", forceLoad: true);
             }
             else
             {
@@ -97,7 +92,6 @@
     private async Task HandleRegister()
     {
         registerError = "";
-        registerSuccess = "";
         
         try
         {
@@ -115,9 +109,11 @@
             
             if (response.IsSuccessStatusCode)
             {
-                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "privateKey", JsonSerializer.Serialize(keys.PrivateKey));
-                registerSuccess = "Account created successfully!";
-                registerRequest = new RegisterRequest();
+                var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "privateKey", JsonSerializer.Serialize(keys.PrivateKey)); 
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", JsonSerializer.Serialize(result.Token));
+                await Auth.Login(result.Token);
+                Nav.NavigateTo("/", forceLoad: true);
             }
             else
             {

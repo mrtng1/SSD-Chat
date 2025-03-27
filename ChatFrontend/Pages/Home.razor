@@ -13,7 +13,8 @@
 
 <PageTitle>Secure Chat</PageTitle>
 
-<h1>Secure Chat @currentUsername - @currentUserId</h1>
+<h1>Secure Chat App</h1>
+<h4>@currentUsername - @currentUserId</h4>
 
 @if (error != null)
 {
@@ -81,15 +82,24 @@
 
     [Inject] private ChatService ChatService { get; set; } = default!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            string jwtToken = await authService.GetTokenAsync();
+            bool tokenValid = await authService.IsTokenValid(jwtToken);
+            if (!tokenValid)
+            {
+                NavigationManager.NavigateTo("/login");
+                return; 
+            }
+            
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             currentUserId = authState.User.Claims.FirstOrDefault(c => c.Type.Equals("UserId", StringComparison.OrdinalIgnoreCase))?.Value.ToString();
             currentUsername = authState.User.FindFirst("unique_name")?.Value ?? "Unknown";
-             
+            
             await LoadUsers();
             await ChatService.InitializeAsync(); 
             ChatService.OnMessageReceived(HandleMessage);
