@@ -1,14 +1,11 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using ChatFrontend.Services
 @using ChatServer.DTOs
-@using System.Security.Claims
 @inject AuthService authService
 @inject AuthHeaderHandler authHeaderHandler
 @using ChatFrontend.DTOs
 @using System.Net.Http.Headers
-@using Org.BouncyCastle.Ocsp
 @attribute [Authorize]
 
 <PageTitle>Secure Chat</PageTitle>
@@ -45,7 +42,7 @@
     </div>
 
     <div class="message-input">
-        <input @bind="newMessage" placeholder="Type encrypted message..." />
+        <input @bind="newMessage" placeholder="Type your message..." />
         <button @onclick="SendMessage">Send</button>
     </div>
 </div>
@@ -153,8 +150,8 @@
             var processedMessage = new Message
             {
                 Content = incomingMessage.Content,
-                Sender = incomingMessage.Sender,
-                
+                Sender = incomingMessage.Sender, 
+                SenderName = incomingMessage.SenderName,
                 Recipient = incomingMessage.Recipient
             };
             
