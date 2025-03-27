@@ -21,37 +21,6 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader());
 });
 
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//    .AddJwtBearer(options =>
-//    {
-//        options.TokenValidationParameters = new TokenValidationParameters
-//        {
-//            ValidateIssuer = true,
-//            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-//            ValidateAudience = true,
-//            ValidAudience = builder.Configuration["Jwt:Audience"],
-//            ValidateLifetime = true,
-//            ValidateIssuerSigningKey = true,
-//            IssuerSigningKey = new SymmetricSecurityKey(
-//                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-//        };
-
-//        options.Events = new JwtBearerEvents
-//        {
-//            OnMessageReceived = context =>
-//            {
-//                var accessToken = context.Request.Query["access_token"];
-//                var path = context.HttpContext.Request.Path;
-//                if (!string.IsNullOrEmpty(accessToken) &&
-//                    path.StartsWithSegments("/chathub"))
-//                {
-//                    context.Token = accessToken;
-//                }
-//                return Task.CompletedTask;
-//            }
-//        };
-//    });
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -63,8 +32,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
 
         options.Events = new JwtBearerEvents
@@ -80,7 +48,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 {
                     context.Token = accessToken;
                 }
-                // For HTTP requests (e.g., /negotiate)
                 else
                 {
                     accessToken = context.Request.Headers["Authorization"]

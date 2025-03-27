@@ -11,13 +11,6 @@ namespace ChatServer.Service
     public class ChatHub : Hub
     {
         
-        public async Task SendMessage(Message message)
-        {
-            Console.WriteLine($"Content received: {message.Content}");
-            // await Clients.User(message.Recipient).SendAsync("ReceiveMessage", message);
-            await Clients.All.SendAsync("ReceiveMessage", message);
-        }
-        
         public async Task SendPrivateMessage(Message message)
         {
             // This will send the message to all connections that belong to the given user identifier.
@@ -25,32 +18,11 @@ namespace ChatServer.Service
             await Clients.User(message.Recipient).SendAsync("ReceiveMessage", message);
         }
         
-        // public override async Task OnConnectedAsync()
-        // {
-        //     var userId = Context.UserIdentifier;
-        //     await Groups.AddToGroupAsync(Context.ConnectionId, userId);
-        //     await base.OnConnectedAsync();
-        // }
-        
         public override async Task OnConnectedAsync()
         {
             var connectionId = Context.ConnectionId;
             var userId = Context.UserIdentifier;
             Console.WriteLine($"New connection: ConnectionId = {connectionId}, UserIdentifier = {userId}");
-
-            // debugging
-            if (Context.User?.Identity?.IsAuthenticated == true)
-            {
-                Console.WriteLine("User is authenticated. Claims:");
-                foreach (var claim in Context.User.Claims)
-                {
-                    Console.WriteLine($" - {claim.Type}: {claim.Value}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("User is not authenticated.");
-            }
 
             if (!string.IsNullOrEmpty(userId))
             {

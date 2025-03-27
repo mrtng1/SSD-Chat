@@ -43,3 +43,4 @@ Thumbs.db
 *.cache
 *.tmp
 ChatServer/appsettings.json
+ChatServer/appsettings.json
