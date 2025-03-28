@@ -19,3 +19,21 @@ Cryptography choices:
 - AES-GCM for confidential+authenticated encryption
 - HKDF for key derivation
 - ECDSA for message integrity verification
+
+sequenceDiagram
+    participant A as User A
+    participant B as User B
+    participant S as Server
+
+    A->>S: Register (PublicKey_A)
+    B->>S: Register (PublicKey_B)
+
+    A->>S: Get PublicKey_B
+    S->>A: PublicKey_B
+
+    A->>A: Derive AES Key (PrivateKey_A + PublicKey_B)
+    A->>S: Send Encrypted Message (AES-GCM + IV)
+    S->>B: Forward Encrypted Message
+
+    B->>B: Derive AES Key (PrivateKey_B + PublicKey_A)
+    B->>B: Decrypt Message

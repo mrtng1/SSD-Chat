@@ -35,39 +35,3 @@
 </body>
 
 </html>
-
-<script>
-    window.generateKeyPair = async () => {
-        try {
-            const keyPair = await window.crypto.subtle.generateKey(
-                {
-                    name: "ECDH",
-                    namedCurve: "P-256",
-                },
-                true,
-                ["deriveKey"]
-            );
-
-            const publicKey = await window.crypto.subtle.exportKey(
-                "spki",
-                keyPair.publicKey
-            );
-
-            return {
-                publicKey: arrayBufferToBase64(publicKey),
-                privateKey: await window.crypto.subtle.exportKey(
-                    "jwk",
-                    keyPair.privateKey
-                )
-            };
-        } catch (error) {
-            console.error("Key generation failed:", error);
-            throw error;
-        }
-    };
-
-    function arrayBufferToBase64(buffer) {
-        const bytes = new Uint8Array(buffer);
-        return btoa(String.fromCharCode(...bytes));
-    }
-</script>

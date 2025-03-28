@@ -21,25 +21,6 @@ namespace ChatFrontend.Services
             _js = js;
             _nav = nav;
         }
-
-        // public override async Task<AuthenticationState> GetAuthenticationStateAsync()
-        // {
-        //     var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
-        //     if (string.IsNullOrEmpty(token))
-        //     {
-        //         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-        //     }
-        //
-        //     var handler = new JwtSecurityTokenHandler();
-        //     var jwtToken = handler.ReadJwtToken(token);
-        //     var claims = jwtToken.Claims.ToList();
-        //     claims.Add(new Claim("JWT", token));
-        //
-        //     var identity = new ClaimsIdentity(claims, "jwt");
-        //     var user = new ClaimsPrincipal(identity);
-        //
-        //     return new AuthenticationState(user);
-        // }
         
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
