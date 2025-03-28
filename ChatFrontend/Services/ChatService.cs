@@ -40,13 +40,17 @@ public class ChatService
 
     public async Task SendMessage(Message message)
     {
+        string messageIv = _encryptionService.GenerateRandomAesIv();
         string encryptedMessage = await _encryptionService.EncryptAsync(
             message.Content,
             SharedSecrets.AesKeyBase64,
-            SharedSecrets.AesIvBase64
+            messageIv
         );
 
         message.Content = encryptedMessage;
+        message.EncryptionIv = messageIv;
+        
+        Console.WriteLine("Sending message, content: " + message.Content + " IV: " + message.EncryptionIv);
         
         await _hubConnection.InvokeAsync("SendPrivateMessage", message);
     }
@@ -56,10 +60,11 @@ public class ChatService
     {
         _hubConnection.On<Message>("ReceiveEncryptedMessage", async (encryptedMessage) =>
         {
+            Console.WriteLine("Received msg: " + encryptedMessage.Content + " iv: " + encryptedMessage.EncryptionIv);
             string decryptedContent = await _encryptionService.DecryptAsync(
                 encryptedMessage.Content, 
                 SharedSecrets.AesKeyBase64,
-                SharedSecrets.AesIvBase64
+                encryptedMessage.EncryptionIv
             );
             
             Message decryptedMessage = new Message

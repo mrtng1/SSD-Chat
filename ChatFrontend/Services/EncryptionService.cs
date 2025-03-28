@@ -38,4 +38,14 @@ public class EncryptionService
             ivBase64
         );
     }
+    
+    public string GenerateRandomAesIv()
+    {
+        byte[] iv = new byte[12]; // 12 bytes = 96 bits (required for AES-GCM)
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(iv);
+        }
+        return Convert.ToBase64String(iv); // Now matches GCM's IV size
+    }
 }

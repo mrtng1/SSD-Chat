@@ -15,4 +15,5 @@ public class Message
     public string SenderName { get; set; }
     public string Recipient { get; set; }
     public string Content { get; set; }
+    public string EncryptionIv { get; set; }
 }
