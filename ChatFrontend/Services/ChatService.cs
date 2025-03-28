@@ -1,4 +1,5 @@
 ﻿using ChatServer.DTOs;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -8,10 +9,13 @@ public class ChatService
 {
     private HubConnection? _hubConnection;
     private readonly AuthenticationStateProvider _authenticationStateProvider;
+    private readonly EncryptionService _encryptionService;
+
     
-    public ChatService(AuthenticationStateProvider authenticationStateProvider)
+    public ChatService(AuthenticationStateProvider authenticationStateProvider, EncryptionService encryptionService)
     {
         _authenticationStateProvider = authenticationStateProvider;
+        _encryptionService = encryptionService;
     }
 
     public async Task InitializeAsync()
@@ -36,12 +40,37 @@ public class ChatService
 
     public async Task SendMessage(Message message)
     {
+        string encryptedMessage = await _encryptionService.EncryptAsync(
+            message.Content,
+            SharedSecrets.AesKeyBase64,
+            SharedSecrets.AesIvBase64
+        );
+
+        message.Content = encryptedMessage;
+        
         await _hubConnection.InvokeAsync("SendPrivateMessage", message);
     }
     
 
     public void OnMessageReceived(Action<Message> handler)
     {
-        _hubConnection.On("ReceiveMessage", handler);
+        _hubConnection.On<Message>("ReceiveEncryptedMessage", async (encryptedMessage) =>
+        {
+            string decryptedContent = await _encryptionService.DecryptAsync(
+                encryptedMessage.Content, 
+                SharedSecrets.AesKeyBase64,
+                SharedSecrets.AesIvBase64
+            );
+            
+            Message decryptedMessage = new Message
+            {
+                Content = decryptedContent,     
+                Sender = encryptedMessage.Sender,
+                SenderName = encryptedMessage.SenderName,
+                Recipient = encryptedMessage.Recipient
+            };
+
+            handler(decryptedMessage);
+        });
     }
 }

@@ -24,6 +24,7 @@ builder.Services.AddScoped(sp => {
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<EncryptionService>();
 builder.Services.AddScoped(sp => new HttpClient 
     
 { 

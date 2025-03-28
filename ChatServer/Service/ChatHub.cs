@@ -13,10 +13,9 @@ namespace ChatServer.Service
         
         public async Task SendPrivateMessage(Message message)
         {
-            // This will send the message to all connections that belong to the given user identifier.
-            Console.WriteLine($"Sending private message to user: {message.Recipient}");
-            await Clients.User(message.Recipient).SendAsync("ReceiveMessage", message);
+            await Clients.User(message.Recipient).SendAsync("ReceiveEncryptedMessage", message);
         }
+        
         
         public override async Task OnConnectedAsync()
         {
