@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
+using System.Security;
 using ChatFrontend.DTOs;
 using Microsoft.AspNetCore.Components;
 
@@ -89,22 +90,23 @@ namespace ChatFrontend.Services
             }
         }
 
-        public async Task Login(string token)
+        public async Task Login(AuthResponse authResponse)
         {
             var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
             
-            var jwtToken = handler.ReadJwtToken(token);
+            var jwtToken = handler.ReadJwtToken(authResponse.Token);
             
             var claims = jwtToken.Claims.ToList();
-            claims.Add(new Claim("JWT", token));
+            claims.Add(new Claim("JWT", authResponse.Token));
 
             var identity = new ClaimsIdentity(claims, "jwt");
             var user = new ClaimsPrincipal(identity);
 
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
     
-            await _js.InvokeVoidAsync("localStorage.setItem", "authToken", token);
-            CreateStateFromToken(token);
+            await _js.InvokeVoidAsync("localStorage.setItem", "authToken", authResponse.Token);
+            await _js.InvokeVoidAsync("localStorage.setItem", "publicKey", authResponse.PublicKey);
+            CreateStateFromToken(authResponse.Token);
         }
 
         public async Task Logout()
@@ -130,6 +132,10 @@ namespace ChatFrontend.Services
             }
         }
         
+        public async Task<string> GetPublicKey()
+        {
+            return await _js.InvokeAsync<string>("localStorage.getItem", "publicKey");
+        }
 
         
     }

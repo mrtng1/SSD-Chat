@@ -7,7 +7,6 @@ namespace ChatFrontend.Services;
 public static class SharedSecrets
 {
     public static readonly string AesKeyBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("1234567890abcdef"));
-    public static readonly string AesIvBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("abcdefghijkl"));
 }
 
 public class EncryptionService

@@ -60,7 +60,6 @@ public class ChatService
     {
         _hubConnection.On<Message>("ReceiveEncryptedMessage", async (encryptedMessage) =>
         {
-            Console.WriteLine("Received msg: " + encryptedMessage.Content + " iv: " + encryptedMessage.EncryptionIv);
             string decryptedContent = await _encryptionService.DecryptAsync(
                 encryptedMessage.Content, 
                 SharedSecrets.AesKeyBase64,
