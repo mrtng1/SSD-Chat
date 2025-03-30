@@ -9,6 +9,25 @@ This application enables secure text-based communication with:
 - **SignalR** for real-time message delivery
 - **Cryptographic integrity checks** to detect message tampering
 
+## Setup & Usage
+### Requirements
+- .NET 9 runtime
+- PostgreSQL database or alternatively InMemoreDatabase (does not work 100% but easier to setup)
+
+### Installation
+1. Clone repository and configure connection strings
+2. Set JWT secret in server configuration
+3. Launch server and client applications
+4. Setup a local PostgreSql db to store users, .sql creation script can be found in the solution root
+
+#### Customise your appsettings.json:
+<code>
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=ChatApp;Username=postgres;Password="
+  }
+</code>
+
+
 ## Key Security Features
 1. **End-to-End Encryption**
     - Messages encrypted using AES-GCM algorithm before leaving sender's device
@@ -46,17 +65,6 @@ This application enables secure text-based communication with:
     - HTTPS transport encryption
     - JWT token validation middleware
     - Encrypted payload handling (server never accesses plaintext)
-
-## Setup & Usage
-### Requirements
-- .NET 9 runtime
-- Modern web browser with Web Crypto API support
-- PostgreSQL database or alternatively InMemoreDatabase (does not work 100% but easier to setup)
-
-### Installation
-1. Clone repository and configure connection strings
-2. Set JWT secret in server configuration
-3. Launch server and client applications
 
 ### User Flow
 1. Authenticate with credentials to obtain JWT
