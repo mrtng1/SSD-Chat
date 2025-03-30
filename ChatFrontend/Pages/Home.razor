@@ -11,7 +11,7 @@
 <PageTitle>Secure Chat</PageTitle>
 
 <h1>Secure Chat App</h1>
-<h4>@currentUsername - @currentUserId</h4>
+<h4>@currentUser.Username - @currentUser.PrimaryKey</h4>
 
 @if (error != null)
 {
@@ -53,7 +53,7 @@
     <select @bind="selectedUserId">
         @if (users.Any())
         {
-            @foreach (var user in users)
+            @foreach (var user in recipients)
             {
                 <option value="@user.PrimaryKey">@user.Username</option>
             }
@@ -69,10 +69,13 @@
     private List<Message> messages = new();
     private string newMessage = "";
     private string currentUserId = "null";
-    private string currentUsername = "null";
+    // private string currentUsername = "null";
+    // private string currentPublicKey = "null";
+    private UserDto currentUser = new UserDto();
     private Exception? error;
 
     private List<UserDto> users = new();
+    private List<UserDto> recipients = new();
     private string selectedUserId = "";
 
     [Inject] private HttpClient Http { get; set; } = default!;
@@ -95,12 +98,12 @@
             
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             currentUserId = authState.User.Claims.FirstOrDefault(c => c.Type.Equals("UserId", StringComparison.OrdinalIgnoreCase))?.Value.ToString();
-            currentUsername = authState.User.FindFirst("unique_name")?.Value ?? "Unknown";
             
             await LoadUsers();
             await ChatService.InitializeAsync(); 
             ChatService.OnMessageReceived(HandleMessage);
-            
+
+            currentUser = users.Where(x => x.PrimaryKey == currentUserId).FirstOrDefault();
         }
         catch (Exception ex)
         {
@@ -116,19 +119,22 @@
 
         try
         {
+            UserDto selectedUser = users.Where(x => x.PrimaryKey == currentUserId).FirstOrDefault();
             await ChatService.SendMessage(new Message()
             {
                 Content = newMessage,
                 Sender = currentUserId ?? "unknown",
-                SenderName = currentUsername ?? "unknown",
-                Recipient = selectedUserId
+                SenderName = currentUser.Username ?? "unknown",
+                SenderPublicKey = currentUser.PublicKey,
+                Recipient = selectedUserId,
+                RecipientPublicKey = selectedUser.PublicKey,
             });
 
             messages.Add(new Message
             {
                 Content = newMessage,
                 Sender = currentUserId ?? "unknown",
-                SenderName = currentUsername ?? "unknown",
+                SenderName = currentUser.Username ?? "unknown",
                 Recipient = selectedUserId
             });
 
@@ -152,7 +158,7 @@
                 Content = incomingMessage.Content,
                 Sender = incomingMessage.Sender, 
                 SenderName = incomingMessage.SenderName,
-                Recipient = incomingMessage.Recipient
+                Recipient = incomingMessage.Recipient,
             };
             
             messages.Add(processedMessage);
@@ -181,6 +187,7 @@
                 {
                     selectedUserId = users[0].PrimaryKey;
                 }
+                recipients = users.Where(x => x.PrimaryKey != currentUserId).ToList();
             }
         }
         catch (Exception ex)

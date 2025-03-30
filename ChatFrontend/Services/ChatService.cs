@@ -43,8 +43,8 @@ public class ChatService
         string messageIv = _encryptionService.GenerateRandomAesIv();
         string encryptedMessage = await _encryptionService.EncryptAsync(
             message.Content,
-            SharedSecrets.AesKeyBase64,
             messageIv
+            
         );
 
         message.Content = encryptedMessage;
@@ -62,7 +62,6 @@ public class ChatService
         {
             string decryptedContent = await _encryptionService.DecryptAsync(
                 encryptedMessage.Content, 
-                SharedSecrets.AesKeyBase64,
                 encryptedMessage.EncryptionIv
             );
             

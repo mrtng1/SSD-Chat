@@ -242,7 +242,6 @@ namespace ChatServer.Controllers
             }
 
             var users = await _context.Users
-                .Where(u => u.PrimaryKey != currentUserId)
                 .Select(u => new { u.PrimaryKey, u.Username, u.PublicKey })
                 .ToListAsync();
 

@@ -18,33 +18,34 @@ public class EncryptionService
         _jsRuntime = jsRuntime;
     }
 
-    public async Task<string> EncryptAsync(string message, string keyBase64, string ivBase64)
+    public async Task<string> EncryptAsync(string message, string ivBase64)
     {
         return await _jsRuntime.InvokeAsync<string>(
             "encryptMessage",
             message,
-            keyBase64,
+            SharedSecrets.AesKeyBase64,
             ivBase64
         );
     }
 
-    public async Task<string> DecryptAsync(string encryptedBase64, string keyBase64, string ivBase64)
+    public async Task<string> DecryptAsync(string encryptedBase64, string ivBase64)
     {
         return await _jsRuntime.InvokeAsync<string>(
             "decryptMessage",
             encryptedBase64,
-            keyBase64,
+            SharedSecrets.AesKeyBase64,
             ivBase64
         );
     }
     
     public string GenerateRandomAesIv()
     {
-        byte[] iv = new byte[12]; // 12 bytes = 96 bits (required for AES-GCM)
+        byte[] iv = new byte[12];
         using (var rng = RandomNumberGenerator.Create())
         {
             rng.GetBytes(iv);
         }
-        return Convert.ToBase64String(iv); // Now matches GCM's IV size
+        return Convert.ToBase64String(iv);
     }
+    
 }
