@@ -1,39 +1,71 @@
-## SSD Chat Application
+# SSD - Chat Application
 
-Features:
-- End-to-end encryption using AES-GCM-256
-- Elliptic Curve Diffie-Hellman key exchange
-- Message signing with ECDSA
-- JWT authentication
-- Perfect forward secrecy
+A real-time messaging platform implementing end-to-end encryption to ensure confidential communication between two users, protecting against eavesdropping and tampering.
 
-Run instructions:
-1. Clone repository
-2. Configure JWT key in appsettings.json
-3. Configure Database connection -> create database with .sql file at ChatServer/Infrastructure/database.sql 
-4. dotnet run --project Server
-5. dotnet run --project Client
+## Project Overview
+This application enables secure text-based communication with:
+- **Client-side encryption** before message transmission
+- **JWT authentication** for user identity verification
+- **SignalR** for real-time message delivery
+- **Cryptographic integrity checks** to detect message tampering
 
-Cryptography choices:
-- ECDH for secure key exchange without transmitting secrets
-- AES-GCM for confidential+authenticated encryption
-- HKDF for key derivation
-- ECDSA for message integrity verification
+## Key Security Features
+1. **End-to-End Encryption**
+    - Messages encrypted using AES-GCM algorithm before leaving sender's device
+    - Decryption only possible by intended recipient
+    - 256-bit encryption keys derived from combined user public keys
 
-sequenceDiagram
-    participant A as User A
-    participant B as User B
-    participant S as Server
+2. **Secure Authentication**
+    - JSON Web Tokens (JWT) validate user sessions
+    - Token-based authorization for chat connections
 
-    A->>S: Register (PublicKey_A)
-    B->>S: Register (PublicKey_B)
+3. **Message Integrity Protection**
+    - Built-in authentication tags in AES-GCM ensure message authenticity
+    - Cryptographic hashing prevents undetected message modification
 
-    A->>S: Get PublicKey_B
-    S->>A: PublicKey_B
+4. **Forward Secrecy Foundations**
+    - Unique initialization vector (IV) per message
+    - Session-specific encryption key derivation
 
-    A->>A: Derive AES Key (PrivateKey_A + PublicKey_B)
-    A->>S: Send Encrypted Message (AES-GCM + IV)
-    S->>B: Forward Encrypted Message
+## Technical Implementation
+### Cryptographic Architecture
+- **Key Management**: Combined public keys hashed with SHA-256 to create shared secrets
+- **Encryption Workflow**:
+    1. Random 12-byte IV generated per message
+    2. AES-GCM encryption using derived session key
+    3. Encrypted payload transmitted with IV metadata
 
-    B->>B: Derive AES Key (PrivateKey_B + PublicKey_A)
-    B->>B: Decrypt Message
+- **Decryption Process**:
+    1. Recipient recreates session key using stored public keys
+    2. IV from metadata used for ciphertext decryption
+    3. Authentication tag verification prevents tampering
+
+### Infrastructure
+- **Real-Time Layer**: SignalR
+- **Security Layer**:
+    - HTTPS transport encryption
+    - JWT token validation middleware
+    - Encrypted payload handling (server never accesses plaintext)
+
+## Setup & Usage
+### Requirements
+- .NET 9 runtime
+- Modern web browser with Web Crypto API support
+- PostgreSQL database or alternatively InMemoreDatabase (does not work 100% but easier to setup)
+
+### Installation
+1. Clone repository and configure connection strings
+2. Set JWT secret in server configuration
+3. Launch server and client applications
+
+### User Flow
+1. Authenticate with credentials to obtain JWT
+2. Exchange public keys through secure channel
+3. Initiate encrypted chat session
+4. Messages automatically encrypted/decrypted during transmission
+
+## Security Considerations
+- **Confidentiality**: Third parties (including server operators) cannot read messages
+- **Integrity**: Cryptographic verification prevents message alteration
+- **Authentication**: JWT tokens ensure participant identity validity
+- **Non-Repudiation**: Message authentication prevents sender denial
