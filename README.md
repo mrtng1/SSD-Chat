@@ -13,6 +13,7 @@ This application enables secure text-based communication with:
 ### Requirements
 - .NET 9 runtime
 - PostgreSQL database or alternatively InMemoreDatabase (does not work 100% but easier to setup)
+- run both Backdnd and Frontend projects
 
 ### Installation
 1. Clone repository and configure connection strings
@@ -27,6 +28,20 @@ This application enables secure text-based communication with:
   }
 </code>
 
+## Relevant Encryption Classes
+1. crypto.js in wwwroot/js
+2. ChatFrontend/Services/EncryptionServices - handles message encrypting and decrypting (uses crypto.js)
+3. ChatFrontend/Services/ChatService - handles signalR connections and message sending
+4. ChatFrontend/Services/AuthEervice - handling if auth state and JWT tokens
+
+## Message sending workflow
+1. User logs in
+2. Fetches all users from API
+3. Select an user -> send a message
+4. Message content gets encrypted by both a hash made up from a combination of recipient and senders public keys 
+and a randomly generated IV that gets sent together with the message.
+5. Message recipient uses again the sender and their own public key to make a hash together with the received randomly generated
+IV key to decrypt the message.
 
 ## Key Security Features
 1. **End-to-End Encryption**
