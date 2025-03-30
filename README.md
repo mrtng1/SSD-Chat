@@ -81,11 +81,6 @@ IV key to decrypt the message.
     - JWT token validation middleware
     - Encrypted payload handling (server never accesses plaintext)
 
-### User Flow
-1. Authenticate with credentials to obtain JWT
-2. Exchange public keys through secure channel
-3. Initiate encrypted chat session
-4. Messages automatically encrypted/decrypted during transmission
 
 ## Security Considerations
 - **Confidentiality**: Third parties (including server operators) cannot read messages
