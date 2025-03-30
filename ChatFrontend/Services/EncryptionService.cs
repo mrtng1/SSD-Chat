@@ -14,7 +14,7 @@ public class EncryptionService
 
     public async Task<string> EncryptAsync(string message, string ivBase64, string recipientPublicKey, string senderPublicKey)
     {
-        string encryptionKey = DeriveEncryptionKey(recipientPublicKey, senderPublicKey,true);
+        string encryptionKey = DeriveEncryptionKey(recipientPublicKey, senderPublicKey);
         return await _jsRuntime.InvokeAsync<string>(
             "encryptMessage",
             message,
@@ -25,7 +25,7 @@ public class EncryptionService
 
     public async Task<string> DecryptAsync(string encryptedBase64, string ivBase64, string recipientPublicKey, string senderPublicKey)
     {
-        string encryptionKey = DeriveEncryptionKey(recipientPublicKey, senderPublicKey, false);
+        string encryptionKey = DeriveEncryptionKey(recipientPublicKey, senderPublicKey);
         return await _jsRuntime.InvokeAsync<string>(
             "decryptMessage",
             encryptedBase64,
@@ -46,7 +46,7 @@ public class EncryptionService
     }
     
     // Derive a message encryption key from both users public keys
-    private static string DeriveEncryptionKey(string user1PublicKey, string user2PublicKey, bool isSend)
+    private static string DeriveEncryptionKey(string user1PublicKey, string user2PublicKey)
     {
         string combinedKeys = user1PublicKey + user2PublicKey;
         
