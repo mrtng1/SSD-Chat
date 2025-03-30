@@ -119,6 +119,7 @@
 
         try
         {
+            UserDto selectedUser = users.Where(x => x.PrimaryKey == selectedUserId).FirstOrDefault();
             await ChatService.SendMessage(new Message()
             {
                 Content = newMessage,
@@ -126,6 +127,7 @@
                 SenderName = currentUser.Username ?? "unknown",
                 SenderPublicKey = currentUser.PublicKey,
                 Recipient = selectedUserId,
+                RecipientPublicKey = selectedUser.PublicKey
             });
 
             messages.Add(new Message
@@ -151,12 +153,14 @@
     {
         try
         {
-            var processedMessage = new Message
+            Message processedMessage = new Message
             {
                 Content = incomingMessage.Content,
                 Sender = incomingMessage.Sender, 
                 SenderName = incomingMessage.SenderName,
                 Recipient = incomingMessage.Recipient,
+                RecipientPublicKey = incomingMessage.RecipientPublicKey,
+                SenderPublicKey = incomingMessage.SenderPublicKey
             };
             
             messages.Add(processedMessage);

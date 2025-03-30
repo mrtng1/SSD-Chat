@@ -97,15 +97,10 @@
         {
             // Generate key pair
             var keys = await JSRuntime.InvokeAsync<KeyPair>("generateKeyPair");
-            
-            var request = new RegisterRequest
-            {
-                Username = registerRequest.Username,
-                Password = registerRequest.Password,
-                PublicKey = keys.PublicKey
-            };
 
-            var response = await Http.PostAsJsonAsync("http://localhost:5065/api/register", request);
+            registerRequest.PublicKey = keys.PublicKey;
+
+            var response = await Http.PostAsJsonAsync("http://localhost:5065/api/register", registerRequest);
             
             if (response.IsSuccessStatusCode)
             {

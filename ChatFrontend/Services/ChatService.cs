@@ -1,5 +1,4 @@
 ﻿using ChatServer.DTOs;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.SignalR.Client;
 
@@ -43,14 +42,14 @@ public class ChatService
         string messageIv = _encryptionService.GenerateRandomAesIv();
         string encryptedMessage = await _encryptionService.EncryptAsync(
             message.Content,
-            messageIv
+            messageIv,
+            message.RecipientPublicKey,
+            message.SenderPublicKey
             
         );
 
         message.Content = encryptedMessage;
         message.EncryptionIv = messageIv;
-        
-        Console.WriteLine("Sending message, content: " + message.Content + " IV: " + message.EncryptionIv);
         
         await _hubConnection.InvokeAsync("SendPrivateMessage", message);
     }
@@ -62,7 +61,9 @@ public class ChatService
         {
             string decryptedContent = await _encryptionService.DecryptAsync(
                 encryptedMessage.Content, 
-                encryptedMessage.EncryptionIv
+                encryptedMessage.EncryptionIv,
+                encryptedMessage.RecipientPublicKey,
+                encryptedMessage.SenderPublicKey
             );
             
             Message decryptedMessage = new Message

@@ -1,4 +1,5 @@
-﻿async function encryptMessage(message, keyBase64, ivBase64) {
+﻿// Encrypt
+async function encryptMessage(message, keyBase64, ivBase64) {
     const key = await window.crypto.subtle.importKey(
         "raw",
         base64ToArrayBuffer(keyBase64),
@@ -19,7 +20,7 @@
     return arrayBufferToBase64(encrypted);
 }
 
-// Decrypt with AES-GCM
+// Decrypt
 async function decryptMessage(encryptedBase64, keyBase64, ivBase64) {
     try {
         // Convert Base64 strings to ArrayBuffers

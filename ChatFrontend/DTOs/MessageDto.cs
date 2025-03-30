@@ -8,4 +8,5 @@ public class Message
     public string SenderName { get; set; }
     public string SenderPublicKey { get; set; }
     public string Recipient { get; set; }
+    public string RecipientPublicKey { get; set; }
 }
