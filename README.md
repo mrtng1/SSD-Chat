@@ -77,3 +77,6 @@ This application enables secure text-based communication with:
 - **Integrity**: Cryptographic verification prevents message alteration
 - **Authentication**: JWT tokens ensure participant identity validity
 - **Non-Repudiation**: Message authentication prevents sender denial
+
+![Logo](images/login.png)
+![Logo](images/app.png)
