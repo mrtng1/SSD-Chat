@@ -78,5 +78,10 @@ This application enables secure text-based communication with:
 - **Authentication**: JWT tokens ensure participant identity validity
 - **Non-Repudiation**: Message authentication prevents sender denial
 
+## Example encrypted message
+<code>
+{"type":1,"invocationId":"1","target":"SendPrivateMessage","arguments":[{"content":"D4s1+3WPRR+aVlf0vZnxcNifJA==","encryptionIv":"CvZEpv+x6Mb5Bhhr","sender":"c9c245fc-6896-4bbd-aab0-ee890fb6c0fb","senderName":"margru","senderPublicKey":"BFFTF5ulNbfaHSAuoMXDk1t+R4kKVY4i8lu/j16HzeVsu8CZJDOty1a2xed7yW602CWn0VX5y6o+Ld+YbI7+IoA=","recipient":"34b05242-af2a-4bfa-a343-9ce8aba412be","recipientPublicKey":"BDTU4ONntHwe8cvC4z0/zCXh3TJO49bKLbZHhJBus87GW7GgvlOmjJY3tTIBLY2GqjQ8UVUOkpnhiZugUp4ojbU="}]}	</code>
+
+## App Screenshots
 ![Logo](images/login.png)
 ![Logo](images/app.png)
