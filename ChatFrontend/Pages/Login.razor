@@ -7,6 +7,9 @@
 @inject IJSRuntime JSRuntime
 @using ChatFrontend.DTOs
 @using Microsoft.AspNetCore.Authorization
+@using Blazored.LocalStorage
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
 @attribute [AllowAnonymous]
 
 <div class="auth-container">
@@ -96,9 +99,11 @@
         try
         {
             // Generate key pair
-            var keys = await JSRuntime.InvokeAsync<KeyPair>("generateKeyPair");
+            KeyPair keys = await JSRuntime.InvokeAsync<KeyPair>("generateKeyPair");
 
             registerRequest.PublicKey = keys.PublicKey;
+            var jwkJson = JsonSerializer.Serialize(keys.PrivateKey); 
+            await localStorage.SetItemAsync("ecdh_private", jwkJson);
 
             var response = await Http.PostAsJsonAsync("http://localhost:5065/api/register", registerRequest);
             

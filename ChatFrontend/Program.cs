@@ -1,3 +1,4 @@
+using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using ChatFrontend;
@@ -22,9 +23,9 @@ builder.Services.AddScoped(sp => {
     };
 });
 
+builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ChatService>();
-builder.Services.AddScoped<EncryptionService>();
 builder.Services.AddScoped(sp => new HttpClient 
     
 { 
