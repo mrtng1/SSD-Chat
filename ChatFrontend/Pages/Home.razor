@@ -34,7 +34,7 @@
             var isSentByCurrentUser = message.Sender == currentUserId;
             <div class="message @(isSentByCurrentUser ? "sent" : "received")">
                 <div class="message-header">
-                    <span class="sender">@message.SenderName</span>
+                    <span class="sender">@message.SenderName -> @message.Recipient</span>
                 </div>
                 <div class="message-content">@message.Content</div>
             </div>
@@ -69,17 +69,15 @@
     private List<Message> messages = new();
     private string newMessage = "";
     private string currentUserId = "null";
-    // private string currentUsername = "null";
-    // private string currentPublicKey = "null";
     private UserDto currentUser = new UserDto();
     private Exception? error;
 
     private List<UserDto> users = new();
     private List<UserDto> recipients = new();
+    
     private string selectedUserId = "";
 
     [Inject] private HttpClient Http { get; set; } = default!;
-
     [Inject] private ChatService ChatService { get; set; } = default!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;

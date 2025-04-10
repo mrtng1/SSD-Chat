@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using Konscious.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 
 namespace ChatServer.Controllers
@@ -28,18 +29,15 @@ namespace ChatServer.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == request.Username);
+            User user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 
             if (user == null)
                 return Unauthorized("Invalid credentials");
 
-            if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
+            if (!await VerifyPasswordHashAsync(request.Password, user.PasswordHash, user.PasswordSalt))
                 return Unauthorized("Invalid credentials");
 
             user.LastLogin = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
             var token = GenerateJwtToken(user);
             var refreshToken = GenerateRefreshToken();
 
@@ -63,10 +61,28 @@ namespace ChatServer.Controllers
             ));
         }
 
-        private bool VerifyPasswordHash(string password, byte[] storedHash, byte[] storedSalt)
+        // private bool VerifyPasswordHash(string password, byte[] storedHash, byte[] storedSalt)
+        // {
+        //     using var hmac = new HMACSHA512(storedSalt);
+        //     var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+        //     return computedHash.SequenceEqual(storedHash);
+        // }
+        
+        private async Task<bool> VerifyPasswordHashAsync(string password, byte[] storedHash, byte[] storedSalt)
         {
-            using var hmac = new HMACSHA512(storedSalt);
-            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var argon2Settings = _config.GetSection("Argon2");
+            int degreeOfParallelism = argon2Settings.GetValue<int>("DegreeOfParallelism");
+            int memorySize = argon2Settings.GetValue<int>("MemorySize");
+            int iterations = argon2Settings.GetValue<int>("Iterations");
+            int hashLength = argon2Settings.GetValue<int>("HashLength");
+
+            var argon2 = new Argon2id(Encoding.UTF8.GetBytes(password));
+            argon2.Salt = storedSalt;
+            argon2.DegreeOfParallelism = degreeOfParallelism;
+            argon2.MemorySize = memorySize;
+            argon2.Iterations = iterations;
+
+            byte[] computedHash = await argon2.GetBytesAsync(hashLength);
             return computedHash.SequenceEqual(storedHash);
         }
 
@@ -110,11 +126,34 @@ namespace ChatServer.Controllers
         {
             try
             {
+                // Argon2 configuration
+                var argon2Settings = _config.GetSection("Argon2");
+                int degreeOfParallelism = argon2Settings.GetValue<int>("DegreeOfParallelism");
+                int memorySize = argon2Settings.GetValue<int>("MemorySize");
+                int iterations = argon2Settings.GetValue<int>("Iterations");
+                int hashLength = argon2Settings.GetValue<int>("HashLength");
+                
                 if (await _context.Users.AnyAsync(u => u.Username == request.Username))
                     return Conflict("Username already exists");
 
                 if (!IsPasswordStrong(request.Password))
                     return BadRequest("Password does not meet complexity requirements");
+                
+                // Generate salt
+                byte[] salt = new byte[16];
+                using (var rng = RandomNumberGenerator.Create())
+                {
+                    rng.GetBytes(salt);
+                }
+
+                // Hash password with Argon2id
+                var argon2 = new Argon2id(Encoding.UTF8.GetBytes(request.Password));
+                argon2.Salt = salt;
+                argon2.DegreeOfParallelism = degreeOfParallelism;
+                argon2.MemorySize = memorySize;
+                argon2.Iterations = iterations;
+
+                byte[] hash = await argon2.GetBytesAsync(hashLength);
 
                 byte[] publicKeyBytes;
                 var publicKey = request.PublicKey.Trim();
@@ -129,6 +168,7 @@ namespace ChatServer.Controllers
                     case 3: publicKey += "="; break;
                 }
 
+                // Validate Public Key
                 try
                 {
                     using var ecdsa = ECDsa.Create();
@@ -144,17 +184,13 @@ namespace ChatServer.Controllers
                 {
                     return BadRequest("Invalid public key format");
                 }
-
-                // Create password hash
-                using var hmac = new HMACSHA512();
-                var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(request.Password));
-                var passwordSalt = hmac.Key;
-
-                var user = new User
+                
+                // Create User
+                User user = new User
                 {
                     Username = request.Username,
-                    PasswordHash = passwordHash,
-                    PasswordSalt = passwordSalt,
+                    PasswordHash = hash,
+                    PasswordSalt = salt,
                     PublicKey = publicKeyBytes
                 };
 
@@ -186,7 +222,7 @@ namespace ChatServer.Controllers
             }
             catch (Exception ex)
             {
-                // Log exception
+                Console.Write(ex.InnerException);
                 return StatusCode(500, "Registration error");
             }
         }

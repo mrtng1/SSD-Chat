@@ -22,7 +22,6 @@ namespace ChatServer.Models
         [Required]
         public byte[] PublicKey { get; set; } = null!;
 
-        public string? ConnectionId { get; set; } 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastLogin { get; set; }
         public string? RefreshToken { get; set; }

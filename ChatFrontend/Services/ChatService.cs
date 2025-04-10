@@ -97,14 +97,12 @@ public class ChatService
     
     private async Task<object> GetOrCreateSharedSecret(string publicKey)
     {
+        // Get Shared Secret
         if (_sharedSecrets.TryGetValue(publicKey, out var secret))
             return secret;
     
-        Console.WriteLine("GetOrCreateSharedSecret " + publicKey);
-        // Retrieve the stored key string from local storage.
+        // Create Shared Secret
         var storedKey = await _localStorage.GetItemAsync<string>("ecdh_private");
-    
-        // Pass the stored JWK string directly to deriveSharedSecret.
         var newSecret = await _jsRuntime.InvokeAsync<object>(
             "deriveSharedSecret",
             publicKey,
