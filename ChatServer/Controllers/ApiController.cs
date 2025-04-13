@@ -270,7 +270,7 @@ namespace ChatServer.Controllers
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(token);
 
-            string  userIdClaim = jwtToken.Claims.First().Value;
+            string userIdClaim = jwtToken.Claims.First().Value;
 
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid currentUserId))
             {

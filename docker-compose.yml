@@ -1,0 +1,14 @@
+﻿version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: chatapp_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 
+      POSTGRES_DB: ChatApp
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/databse.sql
+    ports:
+      - "5432:5432"

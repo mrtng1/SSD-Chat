@@ -6,7 +6,6 @@ create table "Users"
     "PasswordHash"       bytea                   not null,
     "PasswordSalt"       bytea                   not null,
     "PublicKey"          bytea                   not null,
-    "ConnectionId"       text,
     "CreatedAt"          timestamp default now() not null,
     "LastLogin"          timestamp               not null,
     "RefreshToken"       text,
